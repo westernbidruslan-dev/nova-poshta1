@@ -1,0 +1,55 @@
+name: Build Apps
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyQt5 PyMuPDF pyinstaller
+
+      - name: Build Windows EXE
+        run: pyinstaller --onefile --windowed --name "НоваПошта" nova_poshta.py
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: НоваПошта-Windows
+          path: dist/НоваПошта.exe
+          retention-days: 30
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install PyQt5 PyMuPDF pyinstaller
+
+      - name: Build Mac APP
+        run: pyinstaller --onefile --windowed --name "НоваПошта" nova_poshta.py
+
+      - name: Zip the app
+        run: cd dist && zip -r НоваПошта-Mac.zip "НоваПошта"
+
+      - name: Upload Mac artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: НоваПошта-Mac
+          path: dist/НоваПошта-Mac.zip
+          retention-days: 30
