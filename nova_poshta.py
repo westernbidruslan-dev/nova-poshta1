@@ -10,6 +10,7 @@ import sys
 import os
 import re
 import csv
+import platform
 from collections import OrderedDict
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -99,6 +100,14 @@ def parse_lines(lines: list, target: str, reg: OrderedDict, fact: OrderedDict) -
 #  Стилі
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ── Шрифт залежно від ОС ─────────────────────────────────────────────────────
+if platform.system() == "Darwin":   # macOS
+    UI_FONT = "-apple-system, 'Helvetica Neue', Arial, sans-serif"
+elif platform.system() == "Windows":
+    UI_FONT = "'Segoe UI', Arial, sans-serif"
+else:
+    UI_FONT = "Arial, sans-serif"
+
 # ── Western Bid кольори ──────────────────────────────────────────────────────
 WB_DARK    = "#0E3D30"   # темно-зелений — хедер, головні кнопки
 WB_MID     = "#1A5C45"   # середній зелений — акценти
@@ -113,7 +122,7 @@ WB_TEXT2   = "#5A6B66"   # другорядний текст
 
 APP_STYLE = f"""
 * {{
-    font-family: 'Segoe UI', Arial, sans-serif;
+    font-family: {UI_FONT};
     font-size: 13px;
     color: {WB_TEXT};
 }}
