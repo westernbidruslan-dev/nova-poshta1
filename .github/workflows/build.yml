@@ -41,11 +41,15 @@ jobs:
       - name: Install dependencies
         run: pip install PyQt5 PyMuPDF pyinstaller
 
-      - name: Build Mac APP
-        run: pyinstaller --onefile --windowed --name "НоваПошта" nova_poshta.py
+      - name: Build Mac .app bundle
+        run: |
+          pyinstaller \
+            --windowed \
+            --name "НоваПошта" \
+            nova_poshta.py
 
-      - name: Zip the app
-        run: cd dist && zip -r НоваПошта-Mac.zip "НоваПошта"
+      - name: Zip the .app bundle
+        run: cd dist && zip -r НоваПошта-Mac.zip "НоваПошта.app"
 
       - name: Upload Mac artifact
         uses: actions/upload-artifact@v4
