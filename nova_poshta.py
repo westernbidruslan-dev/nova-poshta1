@@ -380,9 +380,11 @@ class HistoryDialog(QDialog):
         # ── Фільтр дат ──
         frow = QHBoxLayout(); frow.setSpacing(8)
         frow.addWidget(QLabel("Період:"))
-        self.d_from = QDateEdit(calendarPopup=True)
+        self.d_from = QDateEdit()
+        self.d_from.setCalendarPopup(True)
         self.d_from.setDate(QDate.currentDate().addDays(-30))
-        self.d_to = QDateEdit(calendarPopup=True)
+        self.d_to = QDateEdit()
+        self.d_to.setCalendarPopup(True)
         self.d_to.setDate(QDate.currentDate())
         for de in (self.d_from, self.d_to): de.setFixedWidth(120)
         frow.addWidget(self.d_from); frow.addWidget(QLabel("—")); frow.addWidget(self.d_to)
@@ -689,7 +691,7 @@ class MainWindow(QMainWindow):
         lay.addWidget(self.reg_badge)
         row1 = QHBoxLayout()
         self.reg_en = QLineEdit(); self.reg_en.setPlaceholderText("Скануйте або введіть ЕН...")
-        self.reg_en.returnPressed.connect(lambda: (self.reg_pl.setFocus(), self.reg_pl.selectAll()))
+        self.reg_en.returnPressed.connect(self._reg_en_enter)
         row1.addWidget(self.reg_en)
         row1.addWidget(QLabel("місць:"))
         self.reg_pl = QSpinBox(); self.reg_pl.setRange(1,999); self.reg_pl.setValue(1)
@@ -776,23 +778,50 @@ class MainWindow(QMainWindow):
         for title, attr in [("Відсутні (0)","tbl_ms"),("Зайві (0)","tbl_ex"),("Всі (0)","tbl_all")]:
             w = QWidget(); tl = QVBoxLayout(w); tl.setContentsMargins(6,6,6,6); tl.setSpacing(6)
             ar = QHBoxLayout()
-            for blbl, slot in [("📋 Скопіювати", lambda a=attr: self._copy(a)),
-                                ("💾 Експорт CSV", lambda a=attr: self._export_csv(a))]:
-                b = QPushButton(blbl); b.clicked.connect(slot); ar.addWidget(b)
+            btn_copy = QPushButton("📋 Скопіювати")
+            btn_exp  = QPushButton("💾 Експорт CSV")
+            btn_copy.setProperty("tbl_attr", attr)
+            btn_exp.setProperty("tbl_attr", attr)
+            btn_copy.clicked.connect(self._on_copy_clicked)
+            btn_exp.clicked.connect(self._on_export_clicked)
+            ar.addWidget(btn_copy); ar.addWidget(btn_exp)
             ar.addStretch(); tl.addLayout(ar)
             tbl = self._make_table(["№","ЕН","Примітка","Статус"],[36,None,0,90])
             tl.addWidget(tbl); setattr(self, attr, tbl)
             self.tabs.addTab(w, title)
         lay.addWidget(self.tabs)
 
+    # ── Допоміжні слоти (без лямбд) ─────────────────────────────────────────
+
+    def _reg_en_enter(self):
+        self.reg_pl.setFocus()
+        self.reg_pl.selectAll()
+
+    def _on_copy_clicked(self):
+        try:
+            attr = self.sender().property("tbl_attr")
+            self._copy(attr)
+        except Exception as e:
+            QMessageBox.critical(self, "Помилка", str(e))
+
+    def _on_export_clicked(self):
+        try:
+            attr = self.sender().property("tbl_attr")
+            self._export_csv(attr)
+        except Exception as e:
+            QMessageBox.critical(self, "Помилка", str(e))
+
     # ── Реєстр ───────────────────────────────────────────────────────────────
 
     def add_to_reg(self):
-        base = norm(self.reg_en.text()); places = self.reg_pl.value()
-        if len(base) < 8: self.reg_en.setFocus(); return
-        if base not in self.reg: self.reg[base] = places; beep_ok()
-        else: beep_dup()
-        self.reg_en.clear(); self.reg_pl.setValue(1); self.render_reg(); self.reg_en.setFocus()
+        try:
+            base = norm(self.reg_en.text()); places = self.reg_pl.value()
+            if len(base) < 8: self.reg_en.setFocus(); return
+            if base not in self.reg: self.reg[base] = places; beep_ok()
+            else: beep_dup()
+            self.reg_en.clear(); self.reg_pl.setValue(1); self.render_reg(); self.reg_en.setFocus()
+        except Exception as e:
+            QMessageBox.critical(self, "Помилка", str(e))
 
     def _expand_registry(self):
         exp = {}
@@ -845,11 +874,14 @@ class MainWindow(QMainWindow):
     # ── Сканування ───────────────────────────────────────────────────────────
 
     def add_to_fact(self):
-        en = norm(self.fact_en.text())
-        if len(en) < 8: return
-        if en not in self.fact: self.fact[en] = True; beep_ok()
-        else: beep_dup()
-        self.fact_en.clear(); self.render_fact(); self.fact_en.setFocus()
+        try:
+            en = norm(self.fact_en.text())
+            if len(en) < 8: return
+            if en not in self.fact: self.fact[en] = True; beep_ok()
+            else: beep_dup()
+            self.fact_en.clear(); self.render_fact(); self.fact_en.setFocus()
+        except Exception as e:
+            QMessageBox.critical(self, "Помилка", str(e))
 
     def render_fact(self):
         q = norm(self.fact_search.text())
@@ -921,6 +953,12 @@ class MainWindow(QMainWindow):
     # ── Звірка ───────────────────────────────────────────────────────────────
 
     def reconcile(self):
+        try:
+            self._do_reconcile()
+        except Exception as e:
+            QMessageBox.critical(self, "Помилка звірки", str(e))
+
+    def _do_reconcile(self):
         expanded = self._expand_registry()
         missing, extra = [], []
         for en, info in expanded.items():
@@ -1035,7 +1073,10 @@ class MainWindow(QMainWindow):
     # ── Архів ────────────────────────────────────────────────────────────────
 
     def open_history(self):
-        HistoryDialog(self, self.db).exec_()
+        try:
+            HistoryDialog(self, self.db).exec_()
+        except Exception as e:
+            QMessageBox.critical(self, "Помилка архіву", str(e))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
